@@ -146,8 +146,7 @@
             <!-- ローディング -->
             <div id="loading" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex flex-col items-center justify-center text-center p-6">
                 <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-teal-400 mb-4"></div>
-                <p id="loading-status" class="text-teal-400 font-bold text-lg">AI生成中...</p>
-                <p class="text-slate-400 text-sm mt-2">教材を作成しています</p>
+                <p id="loading-status" class="text-teal-400 font-bold text-lg">接続中...</p>
             </div>
 
             <!-- タブ: 一覧 -->
@@ -216,9 +215,8 @@
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- 1. CONFIGURATION ---
+        // --- CONFIGURATION ---
         const geminiApiKey = "AIzaSyBM07NSZ9dJrlzNcSpHrCS6lI-39wwyHYo"; 
-        
         const firebaseConfig = {
             apiKey: "AIzaSyB7EQtiD4SLni8RgI63XtADxbEBRetfo1s",
             authDomain: "biz-english-app.firebaseapp.com",
@@ -241,10 +239,18 @@
         let isSpeaking = false;
         let unsubscribeSync = null;
 
-        // --- AUTH & LOGIN ---
+        window.switchTab = (t) => {
+            ['login', 'list', 'add', 'test'].forEach(id => {
+                const el = document.getElementById(`tab-${id}`);
+                if (el) el.classList.add('hidden');
+            });
+            const target = document.getElementById(`tab-${t}`);
+            if (target) target.classList.remove('hidden');
+        };
+
         window.loginWithSyncId = () => {
             const input = document.getElementById('sync-id-input').value.trim();
-            if (input.length < 4) { alert("4文字以上で入力してください。"); return; }
+            if (input.length < 4) { alert("同期IDを4文字以上で入力してください。"); return; }
             syncId = input;
             localStorage.setItem('biz_eng_sync_id', syncId);
             checkAuthState();
@@ -259,31 +265,57 @@
         };
 
         const checkAuthState = async () => {
-            if (!syncId) { switchTab('login'); return; }
-            document.getElementById('header').classList.remove('hidden');
-            showLoading(true, "認証中...");
+            if (!syncId) { 
+                switchTab('login'); 
+                return; 
+            }
+
+            showLoading(true, "Firebaseに接続中...");
+            
             try {
+                // 認証
                 await signInAnonymously(auth);
                 setupSync();
-                switchTab('list');
-            } catch (err) { alert("認証エラー: " + err.message); }
-            finally { showLoading(false); }
+                // 画面を切り替え
+                document.getElementById('header').classList.remove('hidden');
+                switchTab('list'); 
+            } catch (err) { 
+                console.error("Auth Error:", err);
+                let msg = "認証エラーが発生しました。\n";
+                if (err.code === "auth/unauthorized-domain") {
+                    msg += "原因: このドメイン(github.io)が許可されていません。\nFirebaseコンソールのAuthentication > 設定 > 承認済みドメイン に appcreator997.github.io を追加してください。";
+                } else if (err.code === "auth/operation-not-allowed") {
+                    msg += "原因: 匿名認証が有効になっていません。\nFirebaseコンソールのAuthentication > Sign-in method で 匿名 を有効にしてください。";
+                } else {
+                    msg += "理由: " + err.message;
+                }
+                alert(msg);
+                showLoading(false);
+            }
         };
 
         const setupSync = () => {
             if (!syncId) return;
             const wordsCol = collection(db, 'artifacts', appId, 'users', syncId, 'words');
+            
             if (unsubscribeSync) unsubscribeSync();
+            
             unsubscribeSync = onSnapshot(wordsCol, (snapshot) => {
                 const fetched = [];
                 snapshot.forEach(doc => fetched.push({ id: doc.id, ...doc.data() }));
                 words = fetched.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
                 renderWordList();
                 document.getElementById('sync-status').innerText = `ID: ${syncId.substring(0,3)}***`;
+                showLoading(false);
+            }, (err) => {
+                console.error("Firestore Sync Error:", err);
+                if (err.code === 'permission-denied') {
+                    alert("データアクセス権限がありません。Firestoreのセキュリティルールを更新してください。");
+                }
             });
         };
 
-        // --- CORE LOGIC ---
+        // AI 生成ロジック (Gemini 1.5 Flashを使用)
         async function fetchWithRetry(url, options) {
             for (let i = 0; i < 3; i++) {
                 try {
@@ -299,28 +331,22 @@
         window.processNewWord = async () => {
             const wordInput = document.getElementById('input-word').value.trim();
             if (!wordInput || !syncId) return;
-            showLoading(true, "AI生成中...");
+            showLoading(true, "AIが教材を作成中...");
             try {
-                const prompt = `Return JSON for business word: ${wordInput}. Format: { "word": "${wordInput}", "part_of_speech": "POS", "phonetic": "Symbol", "meaning": "JP Mean", "synonyms": "Syn", "examples": [{"en": "Ex1", "jp": "JP1"}, {"en": "Ex2", "jp": "JP2"}], "visual_description": "Anime scene description" }`;
-                
-                // 【修正ポイント】 v1beta から v1 へ変更、モデル名を gemini-1.5-flash に統一
+                const prompt = `Return JSON for business word: ${wordInput}. Format: { "word": "${wordInput}", "part_of_speech": "POS", "phonetic": "Symbol", "meaning": "JP Mean", "synonyms": "Syn", "examples": [{"en": "Ex1", "jp": "JP1"}, {"en": "Ex2", "jp": "JP2"}], "visual_description": "Detailed professional anime scene description" }`;
                 const textRes = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        contents: [{ parts: [{ text: prompt }] }], 
-                        generationConfig: { responseMimeType: "application/json" } 
-                    })
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json" } })
                 });
                 const textData = await textRes.json();
                 const wordData = JSON.parse(textData.candidates[0].content.parts[0].text);
 
-                showLoading(true, "イラスト生成中...");
-                // Imagen は v1beta の predict エンドポイントが標準的
+                showLoading(true, "画像を生成中...");
                 const imgRes = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key=${geminiApiKey}`, {
                     method: 'POST',
                     body: JSON.stringify({ 
-                        instances: [{ prompt: `Modern corporate anime style. ${wordData.visual_description}` }],
+                        instances: [{ prompt: `Modern professional corporate anime style, high quality. ${wordData.visual_description}` }],
                         parameters: { sampleCount: 1 }
                     })
                 });
@@ -334,17 +360,20 @@
                 document.getElementById('input-word').value = '';
             } catch (e) { 
                 console.error(e);
-                alert("エラーが発生しました: " + e.message); 
+                alert("生成エラー: " + e.message); 
             }
             finally { showLoading(false); }
         };
 
         window.renderWordList = () => {
             const container = document.getElementById('word-container');
-            if (words.length === 0) { container.innerHTML = `<p class="text-center py-12 text-slate-500">まだ単語がありません</p>`; return; }
+            if (words.length === 0) { 
+                container.innerHTML = `<div class="text-center py-20"><p class="text-slate-500 mb-4">まだ単語が登録されていません</p><button onclick="switchTab('add')" class="btn-primary px-6 py-2 rounded-full text-slate-900 font-bold">最初の単語を追加</button></div>`; 
+                return; 
+            }
             container.innerHTML = words.map(w => `
                 <div class="glass-card overflow-hidden fade-in">
-                    <img src="${w.imageUrl}" class="w-full h-52 object-cover opacity-70">
+                    <img src="${w.imageUrl}" class="w-full h-52 object-cover opacity-80">
                     <div class="p-5 -mt-12 relative z-10">
                         <div class="bg-slate-900/95 rounded-2xl p-5 border border-white/10 shadow-2xl">
                             <div class="flex justify-between items-start mb-2">
@@ -361,9 +390,12 @@
                                 <button onclick="playText('${w.word.replace(/'/g, "\\'")}')" class="audio-btn text-teal-400 p-2"><i class="fa-solid fa-volume-high text-xl"></i></button>
                             </div>
                             <p class="text-white font-bold mb-4 border-b border-slate-700 pb-2">${w.meaning}</p>
-                            ${w.examples.map(ex => `<div class="bg-slate-800/50 p-2 rounded-lg mb-1 text-xs">
-                                <p class="text-teal-50">${ex.en} <button onclick="playText(\`${ex.en.replace(/'/g, "\\'")}\`)" class="text-slate-500"><i class="fa-solid fa-play text-[10px]"></i></button></p>
-                                <p class="text-slate-400 italic">💡 ${ex.jp}</p>
+                            ${w.examples.map(ex => `<div class="bg-slate-800/50 p-3 rounded-xl border-l-4 border-teal-400 mb-2">
+                                <div class="flex justify-between">
+                                    <p class="text-xs text-teal-50 font-medium leading-relaxed">${ex.en}</p>
+                                    <button onclick="playText(\`${ex.en.replace(/'/g, "\\'")}\`)" class="text-slate-500"><i class="fa-solid fa-play text-[10px]"></i></button>
+                                </div>
+                                <p class="text-[10px] text-slate-400 mt-1">💡 ${ex.jp}</p>
                             </div>`).join('')}
                         </div>
                     </div>
@@ -371,18 +403,23 @@
             `).join('');
         };
 
-        // --- TEST & AUDIO ---
-        window.switchTab = (t) => {
-            ['login', 'list', 'add', 'test'].forEach(id => document.getElementById(`tab-${id}`)?.classList.add('hidden'));
-            document.getElementById(`tab-${t}`)?.classList.remove('hidden');
+        window.showLoading = (show, message = "") => {
+            const overlay = document.getElementById('loading');
+            if (message) document.getElementById('loading-status').innerText = message;
+            overlay.classList.toggle('hidden', !show);
         };
 
         window.startTest = () => {
-            if (words.length === 0) return;
+            if (words.length === 0) { alert("テストする単語がありません。"); return; }
             testQueue = [...words].sort(() => 0.5 - Math.random()).slice(0, 5).map(w => ({
                 ...w, targetEx: w.examples[Math.floor(Math.random()*w.examples.length)]
             }));
             currentTestIndex = 0; switchTab('test'); showQuestion();
+        };
+
+        window.stopTest = () => {
+            clearTimeout(testTimer);
+            switchTab('list');
         };
 
         function showQuestion() {
@@ -405,7 +442,9 @@
         window.revealAnswer = async () => {
             clearTimeout(testTimer);
             const q = testQueue[currentTestIndex];
-            await updateDoc(doc(db, 'artifacts', appId, 'users', syncId, 'words', q.id), { reviewCount: (q.reviewCount || 0) + 1 });
+            try {
+                await updateDoc(doc(db, 'artifacts', appId, 'users', syncId, 'words', q.id), { reviewCount: (q.reviewCount || 0) + 1 });
+            } catch (e) { console.error("Update error:", e); }
             document.getElementById('test-answer-area').classList.remove('hidden');
             document.getElementById('btn-show-answer').classList.add('hidden');
             document.getElementById('btn-next-test').classList.remove('hidden');
@@ -414,13 +453,12 @@
 
         window.nextQuestion = () => {
             currentTestIndex++;
-            if (currentTestIndex < 5) showQuestion(); else switchTab('list');
+            if (currentTestIndex < 5 && currentTestIndex < testQueue.length) showQuestion(); else switchTab('list');
         };
 
         window.playText = async (txt) => {
             if (isSpeaking) return; isSpeaking = true;
             try {
-                // TTS は v1beta が安定
                 const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
                     method: 'POST',
                     body: JSON.stringify({ 
