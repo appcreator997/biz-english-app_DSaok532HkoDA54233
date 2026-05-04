@@ -146,7 +146,8 @@
             <!-- ローディング -->
             <div id="loading" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex flex-col items-center justify-center text-center p-6">
                 <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-teal-400 mb-4"></div>
-                <p id="loading-status" class="text-teal-400 font-bold text-lg">接続中...</p>
+                <p id="loading-status" class="text-teal-400 font-bold text-lg">AI生成中...</p>
+                <p class="text-slate-400 text-sm mt-2">最高品質の教材を作成しています</p>
             </div>
 
             <!-- タブ: 一覧 -->
@@ -250,7 +251,7 @@
 
         window.loginWithSyncId = () => {
             const input = document.getElementById('sync-id-input').value.trim();
-            if (input.length < 4) { alert("同期IDを4文字以上で入力してください。"); return; }
+            if (input.length < 4) { alert("同期IDは4文字以上で入力してください。"); return; }
             syncId = input;
             localStorage.setItem('biz_eng_sync_id', syncId);
             checkAuthState();
@@ -265,57 +266,34 @@
         };
 
         const checkAuthState = async () => {
-            if (!syncId) { 
-                switchTab('login'); 
-                return; 
-            }
-
+            if (!syncId) { switchTab('login'); return; }
             showLoading(true, "Firebaseに接続中...");
-            
             try {
-                // 認証
                 await signInAnonymously(auth);
                 setupSync();
-                // 画面を切り替え
                 document.getElementById('header').classList.remove('hidden');
                 switchTab('list'); 
             } catch (err) { 
                 console.error("Auth Error:", err);
-                let msg = "認証エラーが発生しました。\n";
-                if (err.code === "auth/unauthorized-domain") {
-                    msg += "原因: このドメイン(github.io)が許可されていません。\nFirebaseコンソールのAuthentication > 設定 > 承認済みドメイン に appcreator997.github.io を追加してください。";
-                } else if (err.code === "auth/operation-not-allowed") {
-                    msg += "原因: 匿名認証が有効になっていません。\nFirebaseコンソールのAuthentication > Sign-in method で 匿名 を有効にしてください。";
-                } else {
-                    msg += "理由: " + err.message;
-                }
-                alert(msg);
-                showLoading(false);
+                alert("認証エラーが発生しました。理由: " + err.message); 
             }
+            finally { showLoading(false); }
         };
 
         const setupSync = () => {
             if (!syncId) return;
             const wordsCol = collection(db, 'artifacts', appId, 'users', syncId, 'words');
-            
             if (unsubscribeSync) unsubscribeSync();
-            
             unsubscribeSync = onSnapshot(wordsCol, (snapshot) => {
                 const fetched = [];
                 snapshot.forEach(doc => fetched.push({ id: doc.id, ...doc.data() }));
                 words = fetched.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
                 renderWordList();
                 document.getElementById('sync-status').innerText = `ID: ${syncId.substring(0,3)}***`;
-                showLoading(false);
-            }, (err) => {
-                console.error("Firestore Sync Error:", err);
-                if (err.code === 'permission-denied') {
-                    alert("データアクセス権限がありません。Firestoreのセキュリティルールを更新してください。");
-                }
             });
         };
 
-        // AI 生成ロジック (Gemini 1.5 Flashを使用)
+        // --- AI LOGIC ---
         async function fetchWithRetry(url, options) {
             for (let i = 0; i < 3; i++) {
                 try {
@@ -328,25 +306,41 @@
             }
         }
 
+        // AIの応答からJSONを抽出する関数 (MarkDown記法に対応)
+        function extractJson(text) {
+            const start = text.indexOf('{');
+            const end = text.lastIndexOf('}');
+            if (start === -1 || end === -1) throw new Error("JSON not found in response");
+            return JSON.parse(text.substring(start, end + 1));
+        }
+
         window.processNewWord = async () => {
             const wordInput = document.getElementById('input-word').value.trim();
             if (!wordInput || !syncId) return;
             showLoading(true, "AIが教材を作成中...");
             try {
-                const prompt = `Return JSON for business word: ${wordInput}. Format: { "word": "${wordInput}", "part_of_speech": "POS", "phonetic": "Symbol", "meaning": "JP Mean", "synonyms": "Syn", "examples": [{"en": "Ex1", "jp": "JP1"}, {"en": "Ex2", "jp": "JP2"}], "visual_description": "Detailed professional anime scene description" }`;
+                const prompt = `以下のビジネス英単語/熟語を解析し、必ず指定のJSON形式のみで出力してください。
+単語: ${wordInput}
+JSON形式: { "word": "${wordInput}", "part_of_speech": "品詞", "phonetic": "発音記号", "meaning": "意味", "synonyms": "類語", "examples": [{"en": "例文1", "jp": "和訳1"}, {"en": "例文2", "jp": "和訳2"}], "visual_description": "A professional anime office scene showing [English description]" }`;
+                
+                // v1 エンドポイントを使用し、responseMimeType パラメータを削除
                 const textRes = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json" } })
+                    body: JSON.stringify({ 
+                        contents: [{ parts: [{ text: prompt }] }]
+                        // generationConfig: { responseMimeType: "application/json" } // v1では削除
+                    })
                 });
                 const textData = await textRes.json();
-                const wordData = JSON.parse(textData.candidates[0].content.parts[0].text);
+                const rawText = textData.candidates[0].content.parts[0].text;
+                const wordData = extractJson(rawText);
 
                 showLoading(true, "画像を生成中...");
                 const imgRes = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key=${geminiApiKey}`, {
                     method: 'POST',
                     body: JSON.stringify({ 
-                        instances: [{ prompt: `Modern professional corporate anime style, high quality. ${wordData.visual_description}` }],
+                        instances: [{ prompt: `Modern high-quality corporate anime style. ${wordData.visual_description}` }],
                         parameters: { sampleCount: 1 }
                     })
                 });
@@ -417,11 +411,6 @@
             currentTestIndex = 0; switchTab('test'); showQuestion();
         };
 
-        window.stopTest = () => {
-            clearTimeout(testTimer);
-            switchTab('list');
-        };
-
         function showQuestion() {
             const q = testQueue[currentTestIndex];
             document.getElementById('test-progress').innerText = `${currentTestIndex+1}/5`;
@@ -459,7 +448,8 @@
         window.playText = async (txt) => {
             if (isSpeaking) return; isSpeaking = true;
             try {
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
+                // TTS は v1beta を使用
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-preview-tts:generateContent?key=${geminiApiKey}`, {
                     method: 'POST',
                     body: JSON.stringify({ 
                         contents: [{ parts: [{ text: txt }] }], 
@@ -478,7 +468,7 @@
 
         function createWavHeader(len, rate) {
             const b = new ArrayBuffer(44); const v = new DataView(b);
-            const s = (o, str) => { for (let i = 0; i < string.length; i++) v.setUint8(o + i, str.charCodeAt(i)); };
+            const s = (o, str) => { for (let i = 0; i < str.length; i++) v.setUint8(o + i, str.charCodeAt(i)); };
             s(0, 'RIFF'); v.setUint32(4, 36 + len, true); s(8, 'WAVE'); s(12, 'fmt ');
             v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
             v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true);
