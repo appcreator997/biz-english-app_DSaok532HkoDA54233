@@ -5,11 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Business English Speaker Pro</title>
     
-    <!-- iOS用のアプリ設定 -->
+    <!-- iOS PWA settings -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="BizEng Pro">
-    <!-- アイコン設定（本来は画像が必要ですが、設定のみ記述） -->
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2904/2904841.png">
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -28,7 +27,6 @@
             color: #f8fafc;
             margin: 0;
             overflow-x: hidden;
-            /* iOSでのバウンススクロール防止 */
             position: fixed;
             width: 100%;
             height: 100%;
@@ -57,10 +55,7 @@
             box-shadow: 0 4px 12px rgba(45, 212, 191, 0.4);
         }
 
-        .btn-primary:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
         .anime-image {
             border-radius: 16px;
@@ -78,10 +73,7 @@
             transition: width 10s linear;
         }
 
-        .speaking .audio-btn {
-            opacity: 0.5;
-            pointer-events: none;
-        }
+        .speaking .audio-btn { opacity: 0.5; pointer-events: none; }
 
         .fade-in { animation: fadeIn 0.5s ease-out; }
         @keyframes fadeIn {
@@ -109,10 +101,7 @@
             gap: 4px;
         }
 
-        /* モバイル用UI調整：下部余白 */
-        .pb-safe {
-            padding-bottom: env(safe-area-inset-bottom, 20px);
-        }
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
 
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -122,51 +111,72 @@
 <body class="p-4 md:p-8">
     <div id="app" class="max-w-md mx-auto flex flex-col gap-6">
         
-        <!-- Header -->
-        <header class="flex justify-between items-center py-4 shrink-0">
+        <!-- ヘッダー -->
+        <header id="header" class="hidden flex justify-between items-center py-4 shrink-0">
             <h1 class="text-2xl font-bold text-teal-400">BizEnglish <span class="text-white font-light">Pro</span></h1>
             <div class="flex gap-3">
-                <button onclick="switchTab('list')" class="text-slate-400 hover:text-white" title="一覧"><i class="fa-solid fa-list text-xl"></i></button>
-                <button onclick="switchTab('add')" class="text-slate-400 hover:text-white" title="追加"><i class="fa-solid fa-plus text-xl"></i></button>
+                <div id="sync-status" class="text-[10px] text-slate-500 self-center mr-2"></div>
+                <button onclick="switchTab('list')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-list text-xl"></i></button>
+                <button onclick="switchTab('add')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-plus text-xl"></i></button>
+                <button onclick="logout()" class="text-slate-400 hover:text-white" title="ログアウト"><i class="fa-solid fa-right-from-bracket text-xl"></i></button>
                 <button onclick="startTest()" class="btn-primary px-4 py-1 rounded-full text-sm font-bold text-slate-900">TEST</button>
             </div>
         </header>
 
-        <!-- Main Content Area -->
+        <!-- メインコンテンツ -->
         <main id="main-content" class="flex-grow pb-safe">
-            <!-- Loading Overlay -->
+            
+            <!-- ログイン画面 (同期ID入力) -->
+            <section id="tab-login" class="fade-in flex flex-col justify-center h-full">
+                <div class="glass-card p-8 text-center">
+                    <div class="mb-6">
+                        <i class="fa-solid fa-cloud-bolt text-5xl text-teal-400"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold mb-2">Sync Settings</h2>
+                    <p class="text-sm text-slate-400 mb-8">同期IDを入力して、あなた専用のクラウドデータベースに接続します。</p>
+                    <div class="space-y-4">
+                        <input type="password" id="sync-id-input" placeholder="あなた専用の同期ID" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-4 focus:outline-none focus:border-teal-400 text-white text-center tracking-widest">
+                        <p class="text-[10px] text-slate-500">※iPhoneとiPadで同じIDを入力するとデータが同期されます。他人に推測されにくいIDにしてください。</p>
+                        <button onclick="loginWithSyncId()" class="w-full btn-primary py-4 rounded-xl font-bold text-slate-900">
+                            同期を開始する
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ローディングオーバーレイ -->
             <div id="loading" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex flex-col items-center justify-center text-center p-6">
                 <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-teal-400 mb-4"></div>
                 <p id="loading-status" class="text-teal-400 font-bold text-lg">AIが生成中...</p>
-                <p class="text-slate-400 text-sm mt-2">例文とイラストを2セット分作成しています</p>
+                <p class="text-slate-400 text-sm mt-2">クラウドへ同期しています</p>
             </div>
 
-            <!-- Tab: List -->
-            <section id="tab-list" class="fade-in">
+            <!-- タブ: 一覧 -->
+            <section id="tab-list" class="hidden fade-in">
                 <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
-                    <i class="fa-solid fa-book-bookmark text-teal-400"></i>
-                    ストックしたボキャブラリー
+                    <i class="fa-solid fa-user-shield text-teal-400"></i>
+                    マイ・コレクション
                 </h2>
                 <div id="word-container" class="grid gap-6"></div>
             </section>
 
-            <!-- Tab: Add Word -->
+            <!-- タブ: 単語追加 -->
             <section id="tab-add" class="hidden fade-in">
                 <div class="glass-card p-6">
                     <h2 class="text-xl font-bold mb-6">新単語を追加</h2>
                     <div class="space-y-4">
                         <div>
                             <label class="block text-sm text-slate-400 mb-1">英単語 / 英熟語</label>
-                            <input type="text" id="input-word" placeholder="例: Facilitate" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 focus:outline-none focus:border-teal-400 text-white">
+                            <input type="text" id="input-word" placeholder="例: Stakeholder" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 focus:outline-none focus:border-teal-400 text-white">
                         </div>
                         <button id="add-submit-btn" onclick="processNewWord()" class="w-full btn-primary py-4 rounded-xl font-bold text-slate-900 mt-4">
-                            AIで詳細と画像を生成
+                            AI生成 & プライベート保存
                         </button>
                     </div>
                 </div>
             </section>
 
-            <!-- Tab: Test Mode -->
+            <!-- タブ: テストモード -->
             <section id="tab-test" class="hidden fade-in">
                 <div class="glass-card p-6 text-center flex flex-col min-h-[500px]">
                     <div class="flex justify-between items-center mb-6">
@@ -208,53 +218,122 @@
         </main>
     </div>
 
+    <!-- Firebase SDK -->
     <script type="module">
-        const apiKey = "";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, updateDoc, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- 1. 設定情報 ---
+        const geminiApiKey = "AIzaSyB7EQtiD4SLni8RgI63XtADxbEBRetfo1s"; 
         
-        let words = JSON.parse(localStorage.getItem('biz_words') || '[]');
+        // Firebase 設定
+        const firebaseConfig = {
+            apiKey: "AIzaSyB7EQtiD4SLni8RgI63XtADxbEBRetfo1s",
+            authDomain: "biz-english-app.firebaseapp.com",
+            projectId: "biz-english-app",
+            storageBucket: "biz-english-app.firebasestorage.app",
+            messagingSenderId: "1096252459",
+            appId: "1:1096252459:web:e003ec9aa9c40d63517e6e"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = "biz-eng-pro-v2";
+
+        let words = [];
+        let syncId = localStorage.getItem('biz_eng_sync_id');
         let currentTestIndex = 0;
         let testQueue = [];
         let testTimer = null;
         let isSpeaking = false;
+        let unsubscribeSync = null;
 
+        // --- 2. ログイン / ログアウト ロジック ---
+        window.loginWithSyncId = () => {
+            const input = document.getElementById('sync-id-input').value.trim();
+            if (!input || input.length < 4) {
+                alert("同期IDは4文字以上で入力してください。");
+                return;
+            }
+            syncId = input;
+            localStorage.setItem('biz_eng_sync_id', syncId);
+            checkAuthState();
+        };
+
+        window.logout = () => {
+            if (confirm("ログアウトしますか？（同期IDを忘れないようにしてください）")) {
+                localStorage.removeItem('biz_eng_sync_id');
+                syncId = null;
+                if (unsubscribeSync) unsubscribeSync();
+                location.reload();
+            }
+        };
+
+        const checkAuthState = async () => {
+            if (!syncId) {
+                switchTab('login');
+                document.getElementById('header').classList.add('hidden');
+                return;
+            }
+
+            document.getElementById('header').classList.remove('hidden');
+            showLoading(true, "認証中...");
+            
+            try {
+                await signInAnonymously(auth);
+                setupSync();
+                switchTab('list');
+            } catch (err) {
+                console.error("Auth error:", err);
+                alert("認証エラーが発生しました。");
+            } finally {
+                showLoading(false);
+            }
+        };
+
+        const setupSync = () => {
+            if (!syncId) return;
+            // 同期IDをパスに含めてデータを隔離
+            const wordsCol = collection(db, 'artifacts', appId, 'users', syncId, 'words');
+            
+            if (unsubscribeSync) unsubscribeSync();
+            
+            unsubscribeSync = onSnapshot(wordsCol, (snapshot) => {
+                const fetchedWords = [];
+                snapshot.forEach(doc => fetchedWords.push({ id: doc.id, ...doc.data() }));
+                words = fetchedWords.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+                renderWordList();
+                document.getElementById('sync-status').innerText = `ID: ${syncId.substring(0,3)}***`;
+            }, (err) => {
+                console.error("Firestore sync error:", err);
+            });
+        };
+
+        // --- 3. API ラッパー & ユーティリティ ---
         async function fetchWithRetry(url, options, maxRetries = 5) {
             for (let i = 0; i <= maxRetries; i++) {
                 try {
                     const response = await fetch(url, options);
                     if (response.ok) return response;
                     const errorData = await response.json().catch(() => ({}));
-                    if (i === maxRetries) throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
-                } catch (err) {
-                    if (i === maxRetries) throw err;
-                }
-                const delay = Math.pow(2, i) * 1000;
-                await new Promise(res => setTimeout(res, delay));
+                    if (i === maxRetries) throw new Error(errorData.error?.message || `HTTP status: ${response.status}`);
+                } catch (err) { if (i === maxRetries) throw err; }
+                await new Promise(res => setTimeout(res, Math.pow(2, i) * 1000));
             }
         }
 
         window.processNewWord = async () => {
             const wordInput = document.getElementById('input-word').value.trim();
-            if (!wordInput) return;
+            if (!wordInput || !syncId) return;
 
-            showLoading(true, "テキストを生成中...");
+            showLoading(true, "AIがテキストを生成中...");
 
             try {
-                const prompt = `以下のビジネス英単語/熟語の詳細を日本語で生成し、JSON形式で返してください。
-                単語: ${wordInput}
-                JSON形式: { 
-                    "word": "${wordInput}", 
-                    "part_of_speech": "品詞",
-                    "phonetic": "発音記号", 
-                    "meaning": "意味", 
-                    "synonyms": "類語", 
-                    "examples": [
-                        {"en": "例文1", "jp": "和訳1"},
-                        {"en": "例文2", "jp": "和訳2"}
-                    ],
-                    "visual_description": "A high-quality business anime scene: [English description]"
-                }`;
+                const prompt = `ビジネス英単語の詳細をJSONで返してください。単語: ${wordInput}. フォーマット: { "word": "${wordInput}", "part_of_speech": "品詞", "phonetic": "発音記号", "meaning": "意味", "synonyms": "類語", "examples": [{"en": "例文1", "jp": "和訳1"}, {"en": "例文2", "jp": "和訳2"}], "visual_description": "Detailed anime scene description in English" }`;
 
-                const textResponse = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                const textResponse = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${geminiApiKey}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
@@ -269,7 +348,7 @@
 
                 showLoading(true, "イラストをデザイン中...");
                 const imagePrompt = `Modern professional corporate anime style. ${wordData.visual_description}. No text.`;
-                const imageResponse = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${apiKey}`, {
+                const imageResponse = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${geminiApiKey}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ instances: { prompt: imagePrompt }, parameters: { sampleCount: 1 } })
@@ -277,96 +356,86 @@
                 
                 const imageData = await imageResponse.json();
                 wordData.imageUrl = `data:image/png;base64,${imageData.predictions[0].bytesBase64Encoded}`;
-                wordData.id = Date.now();
+                wordData.createdAt = Date.now();
                 wordData.reviewCount = 0;
 
-                words.unshift(wordData);
-                localStorage.setItem('biz_words', JSON.stringify(words));
-                
-                renderWordList();
+                // 隔離されたパスに保存
+                const docId = `word_${Date.now()}`;
+                const wordDoc = doc(db, 'artifacts', appId, 'users', syncId, 'words', docId);
+                await setDoc(wordDoc, wordData);
+
                 switchTab('list');
                 document.getElementById('input-word').value = '';
 
             } catch (error) {
                 console.error(error);
-                alert("エラーが発生しました: " + error.message);
+                alert("Error: " + error.message);
             } finally {
                 showLoading(false);
             }
         };
 
         window.switchTab = (tab) => {
-            const tabs = ['list', 'add', 'test'];
-            tabs.forEach(t => document.getElementById(`tab-${t}`).classList.add('hidden'));
-            document.getElementById(`tab-${tab}`).classList.remove('hidden');
+            const tabs = ['login', 'list', 'add', 'test'];
+            tabs.forEach(t => {
+                const el = document.getElementById(`tab-${t}`);
+                if (el) el.classList.add('hidden');
+            });
+            const target = document.getElementById(`tab-${tab}`);
+            if (target) target.classList.remove('hidden');
         };
 
-        window.showLoading = (show, message = "AIが生成中...") => {
+        window.showLoading = (show, message = "") => {
             const overlay = document.getElementById('loading');
-            document.getElementById('loading-status').innerText = message;
+            if (message) document.getElementById('loading-status').innerText = message;
             overlay.classList.toggle('hidden', !show);
         };
 
         window.renderWordList = () => {
             const container = document.getElementById('word-container');
             if (words.length === 0) {
-                container.innerHTML = `<div class="text-center py-12 text-slate-500">単語を追加してください</div>`;
+                container.innerHTML = `<div class="text-center py-12 text-slate-500">まだ単語がありません</div>`;
                 return;
             }
-
-            container.innerHTML = words.map(w => {
-                const exampleHtml = w.examples.map(ex => `
-                    <div class="bg-slate-800/50 p-4 rounded-xl border-l-4 border-teal-400 mb-3 last:mb-0">
-                        <div class="flex justify-between items-start mb-1">
-                            <p class="text-sm text-teal-50 font-medium leading-relaxed pr-6">${ex.en}</p>
-                            <button onclick="playText(\`${ex.en.replace(/'/g, "\\'")}\`)" class="audio-btn text-slate-400 hover:text-white">
-                                <i class="fa-solid fa-play text-xs"></i>
-                            </button>
-                        </div>
-                        <p class="text-xs text-slate-400 mt-2">💡 ${ex.jp}</p>
-                    </div>
-                `).join('');
-
-                return `
-                    <div class="glass-card overflow-hidden fade-in">
-                        <img src="${w.imageUrl}" class="w-full h-52 object-cover opacity-70">
-                        <div class="p-5 -mt-12 relative z-10">
-                            <div class="bg-slate-900/95 rounded-2xl p-5 border border-white/10 shadow-2xl">
-                                <div class="flex justify-between items-start mb-2">
-                                    <div class="flex-grow">
-                                        <div class="flex items-center gap-2 mb-1">
-                                            <h3 class="text-2xl font-bold text-teal-400">${w.word}</h3>
-                                            <span class="pos-badge">${w.part_of_speech || 'POS'}</span>
-                                        </div>
-                                        <div class="flex items-center gap-3">
-                                            <p class="text-sm font-mono text-slate-500">${w.phonetic}</p>
-                                            <span class="review-count-badge">
-                                                <i class="fa-solid fa-rotate-right"></i> 復習: ${w.reviewCount || 0}回
-                                            </span>
-                                        </div>
+            container.innerHTML = words.map(w => `
+                <div class="glass-card overflow-hidden fade-in">
+                    <img src="${w.imageUrl}" class="w-full h-52 object-cover opacity-70">
+                    <div class="p-5 -mt-12 relative z-10">
+                        <div class="bg-slate-900/95 rounded-2xl p-5 border border-white/10 shadow-2xl">
+                            <div class="flex justify-between items-start mb-2">
+                                <div class="flex-grow">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <h3 class="text-2xl font-bold text-teal-400">${w.word}</h3>
+                                        <span class="pos-badge">${w.part_of_speech || 'POS'}</span>
                                     </div>
-                                    <button onclick="playText('${w.word.replace(/'/g, "\\'")}')" class="audio-btn text-teal-400 p-2 hover:bg-teal-400/10 rounded-full">
-                                        <i class="fa-solid fa-volume-high text-xl"></i>
-                                    </button>
+                                    <div class="flex items-center gap-3">
+                                        <p class="text-sm font-mono text-slate-500">${w.phonetic}</p>
+                                        <span class="review-count-badge"><i class="fa-solid fa-rotate-right"></i> 復習: ${w.reviewCount || 0}回</span>
+                                    </div>
                                 </div>
-                                <p class="text-white font-bold mb-4 border-b border-slate-700 pb-2">${w.meaning}</p>
-                                <div class="space-y-1">
-                                    ${exampleHtml}
-                                </div>
-                                <p class="text-[10px] text-slate-600 mt-4 text-right">類語: ${w.synonyms}</p>
+                                <button onclick="playText('${w.word.replace(/'/g, "\\'")}')" class="audio-btn text-teal-400 p-2"><i class="fa-solid fa-volume-high text-xl"></i></button>
                             </div>
+                            <p class="text-white font-bold mb-4 border-b border-slate-700 pb-2">${w.meaning}</p>
+                            ${w.examples.map(ex => `
+                                <div class="bg-slate-800/50 p-3 rounded-xl border-l-4 border-teal-400 mb-2">
+                                    <div class="flex justify-between">
+                                        <p class="text-xs text-teal-50 font-medium">${ex.en}</p>
+                                        <button onclick="playText(\`${ex.en.replace(/'/g, "\\'")}\`)" class="text-slate-500"><i class="fa-solid fa-play text-[10px]"></i></button>
+                                    </div>
+                                    <p class="text-[10px] text-slate-400 mt-1">💡 ${ex.jp}</p>
+                                </div>
+                            `).join('')}
                         </div>
                     </div>
-                `;
-            }).join('');
+                </div>
+            `).join('');
         };
 
         window.startTest = () => {
             if (words.length === 0) return;
-            testQueue = [...words].sort(() => 0.5 - Math.random()).slice(0, 5).map(w => {
-                const randomExample = w.examples[Math.floor(Math.random() * w.examples.length)];
-                return { ...w, targetExample: randomExample };
-            });
+            testQueue = [...words].sort(() => 0.5 - Math.random()).slice(0, 5).map(w => ({
+                ...w, targetExample: w.examples[Math.floor(Math.random() * w.examples.length)]
+            }));
             currentTestIndex = 0;
             switchTab('test');
             showQuestion();
@@ -385,34 +454,24 @@
             document.getElementById('test-phonetic').innerText = q.phonetic;
             document.getElementById('test-image').src = q.imageUrl;
             document.getElementById('test-pos').innerText = q.part_of_speech || '';
-            
             document.getElementById('test-answer-area').classList.add('hidden');
             document.getElementById('btn-show-answer').classList.remove('hidden');
             document.getElementById('btn-next-test').classList.add('hidden');
-            
             const bar = document.getElementById('test-timer-bar');
-            bar.style.transition = 'none';
-            bar.style.width = '100%';
-            
+            bar.style.transition = 'none'; bar.style.width = '100%';
             clearTimeout(testTimer);
             setTimeout(() => {
-                bar.style.transition = 'width 10s linear';
-                bar.style.width = '0%';
-                testTimer = setTimeout(() => {
-                    if (!document.getElementById('test-answer-area').classList.contains('hidden')) return;
-                    revealAnswer();
-                }, 10000);
+                bar.style.transition = 'width 10s linear'; bar.style.width = '0%';
+                testTimer = setTimeout(() => { if (document.getElementById('test-answer-area').classList.contains('hidden')) revealAnswer(); }, 10000);
             }, 50);
         }
 
-        window.revealAnswer = () => {
+        window.revealAnswer = async () => {
             clearTimeout(testTimer);
             const q = testQueue[currentTestIndex];
-            const wordIdx = words.findIndex(w => w.id === q.id);
-            if (wordIdx !== -1) {
-                words[wordIdx].reviewCount = (words[wordIdx].reviewCount || 0) + 1;
-                localStorage.setItem('biz_words', JSON.stringify(words));
-                renderWordList();
+            if (syncId) {
+                const wordDoc = doc(db, 'artifacts', appId, 'users', syncId, 'words', q.id);
+                await updateDoc(wordDoc, { reviewCount: (q.reviewCount || 0) + 1 });
             }
             document.getElementById('test-answer-area').classList.remove('hidden');
             document.getElementById('btn-show-answer').classList.add('hidden');
@@ -423,82 +482,50 @@
 
         window.nextQuestion = () => {
             currentTestIndex++;
-            if (currentTestIndex < testQueue.length) {
-                showQuestion();
-            } else {
-                switchTab('list');
-            }
+            if (currentTestIndex < testQueue.length) showQuestion();
+            else switchTab('list');
         };
 
         window.playText = async (text) => {
             if (isSpeaking) return;
             isSpeaking = true;
             document.body.classList.add('speaking');
-            const payload = {
-                contents: [{ parts: [{ text: `Professional business tone: ${text}` }] }],
-                generationConfig: { 
-                    responseModalities: ["AUDIO"],
-                    speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Puck" } } } 
-                }
-            };
             try {
-                const response = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`, {
+                const response = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${geminiApiKey}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: `Professional business tone: ${text}` }] }],
+                        generationConfig: { 
+                            responseModalities: ["AUDIO"],
+                            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Puck" } } } 
+                        }
+                    })
                 });
                 const data = await response.json();
                 const pcmData = data.candidates[0].content.parts[0].inlineData.data;
-                playWavFromPcm(pcmData);
-            } catch (e) { 
-                console.error(e); 
-                isSpeaking = false;
-                document.body.classList.remove('speaking');
-            }
+                const audio = new Audio(URL.createObjectURL(new Blob([createWavHeader(atob(pcmData).length, 24000), new Uint8Array([...atob(pcmData)].map(c => c.charCodeAt(0)))], { type: 'audio/wav' })));
+                audio.onended = () => { isSpeaking = false; document.body.classList.remove('speaking'); };
+                audio.play();
+            } catch (e) { isSpeaking = false; document.body.classList.remove('speaking'); }
         };
 
-        window.playSpeech = (id) => {
-            const text = document.getElementById(id).innerText;
-            playText(text);
-        };
-
-        function playWavFromPcm(base64Pcm) {
-            const binaryString = atob(base64Pcm);
-            const len = binaryString.length;
-            const bytes = new Uint8Array(len);
-            for (let i = 0; i < len; i++) bytes[i] = binaryString.charCodeAt(i);
-            const wavHeader = createWavHeader(len, 24000);
-            const blob = new Blob([wavHeader, bytes], { type: 'audio/wav' });
-            const url = URL.createObjectURL(blob);
-            const audio = new Audio(url);
-            audio.onended = () => { isSpeaking = false; document.body.classList.remove('speaking'); };
-            audio.onerror = () => { isSpeaking = false; document.body.classList.remove('speaking'); };
-            audio.play();
-        }
+        window.playSpeech = (id) => playText(document.getElementById(id).innerText);
 
         function createWavHeader(dataLength, sampleRate) {
             const header = new ArrayBuffer(44);
             const view = new DataView(header);
-            const writeString = (offset, string) => {
-                for (let i = 0; i < string.length; i++) view.setUint8(offset + i, string.charCodeAt(i));
-            };
-            writeString(0, 'RIFF');
-            view.setUint32(4, 36 + dataLength, true);
-            writeString(8, 'WAVE');
-            writeString(12, 'fmt ');
-            view.setUint32(16, 16, true);
-            view.setUint16(20, 1, true);
-            view.setUint16(22, 1, true);
-            view.setUint32(24, sampleRate, true);
-            view.setUint32(28, sampleRate * 2, true);
-            view.setUint16(32, 2, true);
-            view.setUint16(34, 16, true);
-            writeString(36, 'data');
-            view.setUint32(40, dataLength, true);
+            const writeString = (offset, string) => { for (let i = 0; i < string.length; i++) view.setUint8(offset + i, string.charCodeAt(i)); };
+            writeString(0, 'RIFF'); view.setUint32(4, 36 + dataLength, true);
+            writeString(8, 'WAVE'); writeString(12, 'fmt ');
+            view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true);
+            view.setUint32(24, sampleRate, true); view.setUint32(28, sampleRate * 2, true);
+            view.setUint16(32, 2, true); view.setUint16(34, 16, true);
+            writeString(36, 'data'); view.setUint32(40, dataLength, true);
             return header;
         }
 
-        window.onload = () => { renderWordList(); };
+        window.onload = () => { checkAuthState(); };
     </script>
 </body>
 </html>
