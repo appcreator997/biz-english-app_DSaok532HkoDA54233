@@ -210,13 +210,15 @@
         </main>
     </div>
 
+    <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- 設定情報 ---
+        // --- 1. CONFIGURATION ---
         const geminiApiKey = "AIzaSyBM07NSZ9dJrlzNcSpHrCS6lI-39wwyHYo"; 
+        
         const firebaseConfig = {
             apiKey: "AIzaSyB7EQtiD4SLni8RgI63XtADxbEBRetfo1s",
             authDomain: "biz-english-app.firebaseapp.com",
@@ -239,6 +241,7 @@
         let isSpeaking = false;
         let unsubscribeSync = null;
 
+        // --- AUTH & LOGIN ---
         window.loginWithSyncId = () => {
             const input = document.getElementById('sync-id-input').value.trim();
             if (input.length < 4) { alert("4文字以上で入力してください。"); return; }
@@ -280,6 +283,7 @@
             });
         };
 
+        // --- CORE LOGIC ---
         async function fetchWithRetry(url, options) {
             for (let i = 0; i < 3; i++) {
                 try {
@@ -298,18 +302,27 @@
             showLoading(true, "AI生成中...");
             try {
                 const prompt = `Return JSON for business word: ${wordInput}. Format: { "word": "${wordInput}", "part_of_speech": "POS", "phonetic": "Symbol", "meaning": "JP Mean", "synonyms": "Syn", "examples": [{"en": "Ex1", "jp": "JP1"}, {"en": "Ex2", "jp": "JP2"}], "visual_description": "Anime scene description" }`;
-                const textRes = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
+                
+                // 【修正ポイント】 v1beta から v1 へ変更、モデル名を gemini-1.5-flash に統一
+                const textRes = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json" } })
+                    body: JSON.stringify({ 
+                        contents: [{ parts: [{ text: prompt }] }], 
+                        generationConfig: { responseMimeType: "application/json" } 
+                    })
                 });
                 const textData = await textRes.json();
                 const wordData = JSON.parse(textData.candidates[0].content.parts[0].text);
 
                 showLoading(true, "イラスト生成中...");
+                // Imagen は v1beta の predict エンドポイントが標準的
                 const imgRes = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key=${geminiApiKey}`, {
                     method: 'POST',
-                    body: JSON.stringify({ instances: { prompt: `Modern corporate anime style. ${wordData.visual_description}` } })
+                    body: JSON.stringify({ 
+                        instances: [{ prompt: `Modern corporate anime style. ${wordData.visual_description}` }],
+                        parameters: { sampleCount: 1 }
+                    })
                 });
                 const imgData = await imgRes.json();
                 wordData.imageUrl = `data:image/png;base64,${imgData.predictions[0].bytesBase64Encoded}`;
@@ -319,7 +332,10 @@
                 await setDoc(doc(db, 'artifacts', appId, 'users', syncId, 'words', `word_${Date.now()}`), wordData);
                 switchTab('list');
                 document.getElementById('input-word').value = '';
-            } catch (e) { alert("Error: " + e.message); }
+            } catch (e) { 
+                console.error(e);
+                alert("エラーが発生しました: " + e.message); 
+            }
             finally { showLoading(false); }
         };
 
@@ -355,15 +371,10 @@
             `).join('');
         };
 
+        // --- TEST & AUDIO ---
         window.switchTab = (t) => {
             ['login', 'list', 'add', 'test'].forEach(id => document.getElementById(`tab-${id}`)?.classList.add('hidden'));
             document.getElementById(`tab-${t}`)?.classList.remove('hidden');
-        };
-
-        window.showLoading = (show, message = "") => {
-            const overlay = document.getElementById('loading');
-            if (message) document.getElementById('loading-status').innerText = message;
-            overlay.classList.toggle('hidden', !show);
         };
 
         window.startTest = () => {
@@ -409,9 +420,16 @@
         window.playText = async (txt) => {
             if (isSpeaking) return; isSpeaking = true;
             try {
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-preview-tts:generateContent?key=${geminiApiKey}`, {
+                // TTS は v1beta が安定
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
                     method: 'POST',
-                    body: JSON.stringify({ contents: [{ parts: [{ text: txt }] }], generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Puck" } } } } })
+                    body: JSON.stringify({ 
+                        contents: [{ parts: [{ text: txt }] }], 
+                        generationConfig: { 
+                            responseModalities: ["AUDIO"], 
+                            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Puck" } } } 
+                        } 
+                    })
                 });
                 const data = await res.json();
                 const pcm = data.candidates[0].content.parts[0].inlineData.data;
