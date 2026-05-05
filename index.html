@@ -262,7 +262,7 @@
             try {
                 // Analysis via Gemini 2.5 Flash
                 const prompt = `分析対象: ${wordInput}\n以下のJSON形式のみで出力せよ。Markdown記法は禁止。\n{ "word": "${wordInput}", "part_of_speech": "品詞", "phonetic": "発音記号", "meaning": "意味", "examples": [{"en": "例文1", "jp": "和訳1"}, {"en": "例文2", "jp": "和訳2"}], "visual_description": "A clean business anime scene for [English scene description]" }`;
-                const textData = await callGemini('gemini-2.5-flash-preview-09-2025', { contents: [{ parts: [{ text: prompt }] }] });
+                const textData = await callGemini('gemini-2.5-flash', { contents: [{ parts: [{ text: prompt }] }] });
                 const raw = textData.candidates[0].content.parts[0].text;
                 const wordData = JSON.parse(raw.substring(raw.indexOf('{'), raw.lastIndexOf('}') + 1));
 
