@@ -4,90 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Business English Speaker Pro</title>
-    
-    <!-- iOS PWA settings -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="BizEng Pro">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2904/2904841.png">
-
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Urbanist:wght@400;600;700&family=Noto+Sans+JP:wght@400;700&display=swap');
-        
-        :root {
-            --primary: #2dd4bf;
-            --bg-dark: #0f172a;
-        }
-
-        body {
-            font-family: 'Urbanist', 'Noto Sans JP', sans-serif;
-            background-color: var(--bg-dark);
-            color: #f8fafc;
-            margin: 0;
-            overflow-x: hidden;
-            position: fixed;
-            width: 100%;
-            height: 100%;
-        }
-
-        #app {
-            height: 100vh;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        .glass-card {
-            background: rgba(30, 41, 59, 0.7);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 24px;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #2dd4bf 0%, #0d9488 100%);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
+        :root { --primary: #2dd4bf; --bg-dark: #0f172a; }
+        body { font-family: 'Urbanist', 'Noto Sans JP', sans-serif; background-color: var(--bg-dark); color: #f8fafc; margin: 0; overflow-x: hidden; position: fixed; width: 100%; height: 100%; }
+        #app { height: 100vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; }
+        .btn-primary { background: linear-gradient(135deg, #2dd4bf 0%, #0d9488 100%); transition: all 0.3s ease; }
         .btn-primary:active { transform: scale(0.95); }
-
-        .anime-image {
-            border-radius: 16px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-            object-fit: cover;
-            width: 100%;
-            height: 240px;
-            background: #1e293b;
-        }
-
-        .timer-bar {
-            height: 100%;
-            background-color: var(--primary);
-            width: 100%;
-            transition: width 10s linear;
-        }
-
+        .anime-image { border-radius: 16px; box-shadow: 0 8px 16px rgba(0,0,0,0.3); object-fit: cover; width: 100%; height: 240px; background: #1e293b; }
+        .timer-bar { height: 100%; background-color: var(--primary); width: 100%; transition: width 10s linear; }
         .fade-in { animation: fadeIn 0.4s ease-out; }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .pos-badge {
-            font-size: 0.65rem;
-            padding: 2px 8px;
-            border-radius: 4px;
-            background: rgba(45, 212, 191, 0.15);
-            color: #2dd4bf;
-            border: 1px solid rgba(45, 212, 191, 0.3);
-            text-transform: uppercase;
-            font-weight: 700;
-        }
-
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .pos-badge { font-size: 0.65rem; padding: 2px 8px; border-radius: 4px; background: rgba(45, 212, 191, 0.15); color: #2dd4bf; border: 1px solid rgba(45, 212, 191, 0.3); text-transform: uppercase; font-weight: 700; }
         .pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
     </style>
 </head>
 <body class="p-4 md:p-8">
@@ -95,70 +27,65 @@
         
         <!-- Header -->
         <header id="header" class="hidden flex justify-between items-center py-4 shrink-0">
-            <h1 class="text-2xl font-bold text-teal-400">BizEnglish <span class="text-white font-light">Pro</span></h1>
+            <h1 class="text-2xl font-bold text-teal-400">BizEng <span class="text-white font-light">Pro</span></h1>
             <div class="flex gap-4">
-                <button onclick="switchTab('list')" class="text-slate-400 hover:text-white" title="一覧"><i class="fa-solid fa-list text-xl"></i></button>
-                <button onclick="switchTab('add')" class="text-slate-400 hover:text-white" title="単語登録"><i class="fa-solid fa-plus text-xl"></i></button>
-                <button onclick="logout()" class="text-slate-400 hover:text-white" title="ログアウト"><i class="fa-solid fa-right-from-bracket text-xl"></i></button>
-                <button onclick="startTest()" class="btn-primary px-5 py-1.5 rounded-full text-sm font-bold text-slate-900 shadow-lg">TEST</button>
+                <button onclick="switchTab('list')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-list text-xl"></i></button>
+                <button onclick="switchTab('add')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-plus text-xl"></i></button>
+                <button onclick="logout()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-right-from-bracket text-xl"></i></button>
+                <button onclick="startTest()" class="btn-primary px-4 py-1 rounded-full text-sm font-bold text-slate-900 shadow-lg">TEST</button>
             </div>
         </header>
 
         <main id="main-content" class="flex-grow pb-safe overflow-hidden flex flex-col">
             
-            <!-- Sync Setup -->
+            <!-- Setup / Login View -->
             <section id="tab-login" class="fade-in flex flex-col justify-center h-full">
                 <div class="glass-card p-8 text-center">
-                    <div class="mb-6"><i class="fa-solid fa-bolt-lightning text-5xl text-teal-400"></i></div>
-                    <h2 class="text-2xl font-bold mb-2">Sync Settings</h2>
-                    <p class="text-sm text-slate-400 mb-8">同期IDを入力して学習を開始してください。</p>
-                    <input type="password" id="sync-id-input" placeholder="自分だけのID" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-4 focus:outline-none focus:border-teal-400 text-white text-center tracking-widest text-lg mb-4">
-                    <button onclick="loginWithSyncId()" class="w-full btn-primary py-4 rounded-xl font-bold text-slate-900 text-lg shadow-xl">同期を開始する</button>
+                    <div class="mb-6"><i class="fa-solid fa-shield-halved text-5xl text-teal-400"></i></div>
+                    <h2 class="text-2xl font-bold mb-6">Setup App</h2>
+                    <div class="space-y-4">
+                        <div class="text-left">
+                            <label class="text-[10px] text-slate-500 ml-2 uppercase font-bold">1. 同期ID (自由な文字列)</label>
+                            <input type="password" id="sync-id-input" placeholder="例: user-abc-123" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-4 focus:outline-none focus:border-teal-400 text-white text-center">
+                        </div>
+                        <div class="text-left">
+                            <label class="text-[10px] text-slate-500 ml-2 uppercase font-bold">2. Gemini API Key (Google AI Studio)</label>
+                            <input type="password" id="api-key-input" placeholder="AIza..." class="w-full bg-slate-800 border border-slate-700 rounded-xl p-4 focus:outline-none focus:border-teal-400 text-white text-center">
+                        </div>
+                        <button onclick="saveAndLogin()" class="w-full btn-primary py-4 rounded-xl font-bold text-slate-900 text-lg shadow-xl mt-4">設定を保存して開始</button>
+                        <p class="text-[10px] text-slate-500 mt-4">※入力された情報はブラウザ内にのみ保存され、GitHub等へ送信されることはありません。</p>
+                    </div>
                 </div>
             </section>
 
             <!-- Loading Overlay -->
             <div id="loading" class="hidden fixed inset-0 bg-slate-900/95 z-50 flex flex-col items-center justify-center text-center p-6 backdrop-blur-md">
-                <div class="relative w-16 h-16 mb-8">
-                    <div class="absolute inset-0 border-4 border-teal-400/20 rounded-full"></div>
-                    <div class="absolute inset-0 border-4 border-t-teal-400 rounded-full animate-spin"></div>
-                </div>
-                <p id="loading-status" class="text-teal-400 font-bold text-xl mb-2">AI 2.5 Flash Processing...</p>
-                <p id="loading-sub" class="text-slate-400 text-sm">次世代AIが高精度な教材を生成中</p>
+                <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-teal-400 mb-6"></div>
+                <p id="loading-status" class="text-teal-400 font-bold text-xl mb-2">処理中...</p>
+                <p id="loading-sub" class="text-slate-400 text-sm">最高品質の教材を作成しています</p>
             </div>
 
-            <!-- List View -->
-            <section id="tab-list" class="hidden fade-in h-full overflow-y-auto pr-1">
-                <div id="word-container" class="grid gap-6 pb-24"></div>
-            </section>
-
-            <!-- Add View -->
+            <section id="tab-list" class="hidden fade-in h-full overflow-y-auto"><div id="word-container" class="grid gap-6 pb-20"></div></section>
             <section id="tab-add" class="hidden fade-in">
                 <div class="glass-card p-6">
-                    <h2 class="text-xl font-bold mb-6">英単語の追加</h2>
-                    <input type="text" id="input-word" placeholder="例: Stakeholder" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-4 focus:outline-none focus:border-teal-400 text-white text-lg mb-6">
-                    <button id="add-submit-btn" onclick="processNewWord()" class="w-full btn-primary py-4 rounded-xl font-bold text-slate-900 text-lg shadow-xl">AI 2.5で生成 & 保存</button>
+                    <h2 class="text-xl font-bold mb-6">単語追加</h2>
+                    <input type="text" id="input-word" placeholder="例: Leverage" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-4 focus:outline-none focus:border-teal-400 text-white text-lg mb-6">
+                    <button onclick="processNewWord()" class="w-full btn-primary py-4 rounded-xl font-bold text-slate-900">AI教材を生成</button>
                 </div>
             </section>
 
-            <!-- Test View -->
+            <!-- Test Mode View -->
             <section id="tab-test" class="hidden fade-in flex-grow flex flex-col">
-                <div class="glass-card p-6 text-center flex flex-col flex-grow min-h-[500px]">
-                    <div class="flex justify-between items-center mb-6 text-slate-500">
-                        <span id="test-progress" class="text-xs font-mono">1/5</span>
-                        <button onclick="stopTest()"><i class="fa-solid fa-xmark"></i></button>
-                    </div>
-                    <h3 id="test-jp-text" class="text-xl font-bold mb-8 min-h-[5rem] flex items-center justify-center leading-relaxed"></h3>
-                    <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden mb-8"><div id="test-timer-bar" class="timer-bar"></div></div>
-                    <div id="test-answer-area" class="hidden fade-in flex-grow">
+                <div class="glass-card p-6 text-center flex flex-col flex-grow">
+                    <div class="flex justify-between items-center mb-6"><span id="test-progress" class="text-xs text-slate-500">1 / 5</span><button onclick="stopTest()"><i class="fa-solid fa-xmark"></i></button></div>
+                    <div id="test-jp-text" class="text-xl font-bold mb-8 min-h-[5rem] flex items-center justify-center"></div>
+                    <div class="w-full bg-slate-800 h-1 rounded-full overflow-hidden mb-8"><div id="test-timer-bar" class="timer-bar"></div></div>
+                    <div id="test-answer-area" class="hidden fade-in">
                         <img id="test-image" src="" class="anime-image mb-4">
-                        <div class="flex items-center justify-center gap-2 mb-1">
-                            <p id="test-en-text" class="text-xl font-bold text-teal-400"></p>
-                            <span id="test-pos" class="pos-badge"></span>
-                        </div>
-                        <button onclick="playSpeech('test-en-text')" class="text-teal-400 text-4xl my-2 active:opacity-50"><i class="fa-solid fa-circle-play"></i></button>
+                        <p id="test-en-text" class="text-lg font-bold text-teal-400"></p>
+                        <button onclick="playSpeech('test-en-text')" class="text-teal-400 text-4xl mt-2"><i class="fa-solid fa-circle-play"></i></button>
                     </div>
-                    <div class="mt-auto flex gap-4 pt-4"><button id="btn-show-answer" onclick="revealAnswer()" class="flex-grow btn-primary py-4 rounded-xl font-bold text-slate-900 shadow-lg">答えを見る</button><button id="btn-next-test" onclick="nextQuestion()" class="hidden flex-grow btn-primary py-4 rounded-xl font-bold text-slate-900 shadow-lg">Next</button></div>
+                    <div class="mt-auto flex gap-4"><button id="btn-show-answer" onclick="revealAnswer()" class="flex-grow btn-primary py-4 rounded-xl font-bold text-slate-900">答えを見る</button><button id="btn-next-test" onclick="nextQuestion()" class="hidden flex-grow btn-primary py-4 rounded-xl font-bold text-slate-900">次へ</button></div>
                 </div>
             </section>
         </main>
@@ -169,12 +96,9 @@
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- 1. SETTINGS (YOUR KEYS) ---
-        const googleAiStudioKey = "AIzaSyAuclLbKyA_qMN8-T0JcLNMGq6qNNKpxOc"; // AI Studio Key (Method C)
-        const firebaseBrowserKey = "AIzaSyB7EQtiD4SLni8RgI63XtADxbEBRetfo1s"; // Firebase Browser Key
-
+        // Firebase Config (これは公開されてもセキュリティ上の問題はありません)
         const firebaseConfig = {
-            apiKey: firebaseBrowserKey,
+            apiKey: "AIzaSyB7EQtiD4SLni8RgI63XtADxbEBRetfo1s",
             authDomain: "biz-english-app.firebaseapp.com",
             projectId: "biz-english-app",
             storageBucket: "biz-english-app.firebasestorage.app",
@@ -185,136 +109,127 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appId = "biz-eng-v2.5-stable";
+        const appIdPrefix = "biz-eng-v-stable-final";
 
         let words = [];
-        let syncId = localStorage.getItem('biz_eng_sync_v25');
+        let syncId = localStorage.getItem('BIZENG_SYNC_ID');
+        let geminiApiKey = localStorage.getItem('BIZENG_GEMINI_KEY');
+        let unsubscribeSync = null;
+        let isSpeaking = false;
         let currentTestIndex = 0;
         let testQueue = [];
         let testTimer = null;
-        let isSpeaking = false;
-        let unsubscribeSync = null;
 
-        // --- 2. AUTH & SYNC ---
-        window.loginWithSyncId = () => {
-            const input = document.getElementById('sync-id-input').value.trim();
-            if (input.length < 4) return alert("4文字以上で入力してください。");
-            syncId = input;
-            localStorage.setItem('biz_eng_sync_v25', syncId);
+        window.saveAndLogin = () => {
+            const sid = document.getElementById('sync-id-input').value.trim();
+            const key = document.getElementById('api-key-input').value.trim();
+            if (!sid || !key) return alert("同期IDとAPIキーの両方を入力してください。");
+            
+            localStorage.setItem('BIZENG_SYNC_ID', sid);
+            localStorage.setItem('BIZENG_GEMINI_KEY', key);
+            syncId = sid;
+            geminiApiKey = key;
             checkAuthState();
         };
 
         window.logout = () => {
-            if (confirm("同期を解除しますか？")) { localStorage.removeItem('biz_eng_sync_v25'); location.reload(); }
+            if (confirm("ログアウトしますか？ 設定は消去されます。")) {
+                localStorage.removeItem('BIZENG_SYNC_ID');
+                localStorage.removeItem('BIZENG_GEMINI_KEY');
+                location.reload();
+            }
         };
 
         const checkAuthState = async () => {
-            if (!syncId) return switchTab('login');
-            showLoading(true, "Authentication...");
+            if (!syncId || !geminiApiKey) { switchTab('login'); return; }
+            showLoading(true, "Connecting...");
             try {
                 await signInAnonymously(auth);
                 setupSync();
                 document.getElementById('header').classList.remove('hidden');
                 switchTab('list');
-            } catch (e) { alert("Auth Fail: " + e.message); showLoading(false); }
+            } catch (e) { alert("Firebase Error: " + e.message); showLoading(false); }
         };
 
         const setupSync = () => {
-            if (!syncId) return;
-            const wordsCol = collection(db, 'artifacts', appId, 'users', syncId, 'words');
+            const wordsCol = collection(db, 'artifacts', appIdPrefix, 'users', syncId, 'words');
             if (unsubscribeSync) unsubscribeSync();
-            unsubscribeSync = onSnapshot(wordsCol, (snapshot) => {
-                const fetched = [];
-                snapshot.forEach(doc => fetched.push({ id: doc.id, ...doc.data() }));
-                words = fetched.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-                renderWordList();
-                showLoading(false);
+            unsubscribeSync = onSnapshot(wordsCol, (snap) => {
+                const f = []; snap.forEach(d => f.push({ id: d.id, ...d.data() }));
+                words = f.sort((a,b) => (b.createdAt || 0) - (a.createdAt || 0));
+                renderWordList(); showLoading(false);
             }, () => showLoading(false));
         };
 
-        // --- 3. AI LOGIC (Gemini 2.5 Flash / Imagen 4.0 / TTS) ---
-        async function callGemini(endpoint, payload) {
-            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${endpoint}:generateContent?key=${googleAiStudioKey}`, {
+        async function callAi(endpoint, payload) {
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${endpoint}:generateContent?key=${geminiApiKey}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.error?.message || "AI Error");
+            if (!res.ok) throw new Error(data.error?.message || "AI API Error");
             return data;
-        }
-
-        async function callImagen(prompt) {
-            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${googleAiStudioKey}`, {
-                method: 'POST',
-                body: JSON.stringify({ instances: { prompt: prompt }, parameters: { sampleCount: 1 } })
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error?.message || "Imagen Error");
-            return `data:image/png;base64,${data.predictions[0].bytesBase64Encoded}`;
         }
 
         window.processNewWord = async () => {
             const wordInput = document.getElementById('input-word').value.trim();
-            if (!wordInput || !syncId) return;
-            showLoading(true, "Gemini 2.5 Flash Analyzing...");
-            
+            if (!wordInput) return;
+            showLoading(true, "Analyzing with Gemini 1.5 Flash...");
             try {
-                // Analysis via Gemini 2.5 Flash
-                const prompt = `分析対象: ${wordInput}\n以下のJSON形式のみで出力せよ。Markdown記法は禁止。\n{ "word": "${wordInput}", "part_of_speech": "品詞", "phonetic": "発音記号", "meaning": "意味", "examples": [{"en": "例文1", "jp": "和訳1"}, {"en": "例文2", "jp": "和訳2"}], "visual_description": "A clean business anime scene for [English scene description]" }`;
-                const textData = await callGemini('gemini-2.5-flash', { contents: [{ parts: [{ text: prompt }] }] });
+                const prompt = `分析単語: ${wordInput}\nJSON形式のみで出力せよ。\n{ "word": "${wordInput}", "part_of_speech": "品詞", "phonetic": "発音記号", "meaning": "意味", "examples": [{"en": "例文1", "jp": "和訳1"}, {"en": "例文2", "jp": "和訳2"}], "visual_description": "A high-quality business anime office scene for [English description]" }`;
+                const textData = await callAi('gemini-2.5-flash', { contents: [{ parts: [{ text: prompt }] }] });
                 const raw = textData.candidates[0].content.parts[0].text;
                 const wordData = JSON.parse(raw.substring(raw.indexOf('{'), raw.lastIndexOf('}') + 1));
 
-                // Image via Imagen 4.0
-                showLoading(true, "Imagen 4.0 Designing...");
-                let imageUrl = "";
+                showLoading(true, "Generating Visual with Imagen 3...");
+                let imageUrl = "https://via.placeholder.com/400x300?text=No+Visual";
                 try {
-                    imageUrl = await callImagen(`Professional corporate anime art style. ${wordData.visual_description}`);
-                } catch (e) { imageUrl = "https://via.placeholder.com/400x300?text=AI+Visual"; }
-                
+                    const imgRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key=${geminiApiKey}`, {
+                        method: 'POST',
+                        body: JSON.stringify({ instances: { prompt: `Professional corporate anime art style. ${wordData.visual_description}` } })
+                    });
+                    const imgData = await imgRes.json();
+                    if (imgData.predictions) imageUrl = `data:image/png;base64,${imgData.predictions[0].bytesBase64Encoded}`;
+                } catch (e) { console.warn("Imagen failed"); }
+
                 wordData.imageUrl = imageUrl;
                 wordData.createdAt = Date.now();
                 wordData.reviewCount = 0;
 
-                await setDoc(doc(db, 'artifacts', appId, 'users', syncId, 'words', `w_${Date.now()}`), wordData);
+                await setDoc(doc(db, 'artifacts', appIdPrefix, 'users', syncId, 'words', `w_${Date.now()}`), wordData);
                 switchTab('list');
                 document.getElementById('input-word').value = '';
             } catch (e) { alert("AI Error: " + e.message); }
             finally { showLoading(false); }
         };
 
-        // --- 4. RENDER & TEST ---
-        window.switchTab = (tab) => {
+        window.switchTab = (t) => {
             ['login', 'list', 'add', 'test'].forEach(id => document.getElementById(`tab-${id}`).classList.add('hidden'));
-            document.getElementById(`tab-${tab}`).classList.remove('hidden');
+            document.getElementById(`tab-${t}`).classList.remove('hidden');
         };
 
-        window.showLoading = (show, status = "", sub = "") => {
-            const overlay = document.getElementById('loading');
+        window.showLoading = (s, status = "") => {
+            const o = document.getElementById('loading');
             if (status) document.getElementById('loading-status').innerText = status;
-            if (sub) document.getElementById('loading-sub').innerText = sub;
-            overlay.classList.toggle('hidden', !show);
+            o.classList.toggle('hidden', !s);
         };
 
         window.renderWordList = () => {
             const container = document.getElementById('word-container');
-            if (words.length === 0) { container.innerHTML = `<div class="text-center py-20 text-slate-500">まだ単語がありません。</div>`; return; }
+            if (words.length === 0) { container.innerHTML = `<div class="text-center py-20 text-slate-500">単語がありません。</div>`; return; }
             container.innerHTML = words.map(w => `
                 <div class="glass-card overflow-hidden fade-in mb-4">
-                    <img src="${w.imageUrl}" class="w-full h-52 object-cover opacity-80" onerror="this.src='https://via.placeholder.com/400x200?text=Visual+Ready'">
+                    <img src="${w.imageUrl}" class="w-full h-52 object-cover opacity-80">
                     <div class="p-5 -mt-12 relative z-10">
-                        <div class="bg-slate-900/95 rounded-2xl p-5 border border-white/10 shadow-2xl">
-                            <div class="flex justify-between items-start mb-3">
-                                <div>
-                                    <div class="flex items-center gap-2 mb-1"><h3 class="text-2xl font-bold text-teal-400">${w.word}</h3><span class="pos-badge">${w.part_of_speech}</span></div>
-                                    <p class="text-xs font-mono text-slate-500">${w.phonetic} | Review: ${w.reviewCount}</p>
-                                </div>
+                        <div class="bg-slate-900/95 rounded-2xl p-5 border border-white/10">
+                            <div class="flex justify-between items-start mb-2">
+                                <div><h3 class="text-2xl font-bold text-teal-400">${w.word}</h3><span class="pos-badge">${w.part_of_speech}</span></div>
                                 <button onclick="playText('${w.word.replace(/'/g, "\\'")}')" class="text-teal-400 text-3xl"><i class="fa-solid fa-circle-play"></i></button>
                             </div>
                             <p class="text-white font-bold mb-4 border-b border-slate-700 pb-2">${w.meaning}</p>
                             ${w.examples.map(ex => `<div class="bg-slate-800/50 p-3 rounded-xl border-l-4 border-teal-400 mb-2">
-                                <div class="flex justify-between"><p class="text-xs text-teal-50 font-medium leading-relaxed">${ex.en}</p><button onclick="playText(\`${ex.en.replace(/'/g, "\\'")}\`)" class="text-slate-500 pl-2"><i class="fa-solid fa-play text-[10px]"></i></button></div>
+                                <p class="text-xs text-teal-50 leading-relaxed">${ex.en}</p>
                                 <p class="text-[10px] text-slate-400 mt-1">💡 ${ex.jp}</p>
                             </div>`).join('')}
                         </div>
@@ -323,9 +238,8 @@
             `).join('');
         };
 
-        // --- 5. TEST & TTS ---
         window.startTest = () => {
-            if (words.length === 0) return alert("単語がありません");
+            if (words.length === 0) return;
             testQueue = [...words].sort(() => 0.5 - Math.random()).slice(0, 5).map(w => ({ ...w, targetEx: w.examples[Math.floor(Math.random()*w.examples.length)] }));
             currentTestIndex = 0; switchTab('test'); showQuestion();
         };
@@ -338,7 +252,6 @@
             document.getElementById('test-jp-text').innerText = q.targetEx.jp;
             document.getElementById('test-en-text').innerText = q.targetEx.en;
             document.getElementById('test-image').src = q.imageUrl;
-            document.getElementById('test-pos').innerText = q.part_of_speech;
             document.getElementById('test-answer-area').classList.add('hidden');
             document.getElementById('btn-show-answer').classList.remove('hidden');
             document.getElementById('btn-next-test').classList.add('hidden');
@@ -348,14 +261,12 @@
             clearTimeout(testTimer); testTimer = setTimeout(revealAnswer, 10000);
         }
 
-        window.revealAnswer = async () => {
+        window.revealAnswer = () => {
             clearTimeout(testTimer);
-            const q = testQueue[currentTestIndex];
-            try { await updateDoc(doc(db, 'artifacts', appId, 'users', syncId, 'words', q.id), { reviewCount: (q.reviewCount || 0) + 1 }); } catch (e) {}
             document.getElementById('test-answer-area').classList.remove('hidden');
             document.getElementById('btn-show-answer').classList.add('hidden');
             document.getElementById('btn-next-test').classList.remove('hidden');
-            playText(q.targetEx.en);
+            playText(testQueue[currentTestIndex].targetEx.en);
         };
 
         window.nextQuestion = () => { currentTestIndex++; if (currentTestIndex < 5 && currentTestIndex < words.length) showQuestion(); else switchTab('list'); };
@@ -363,15 +274,11 @@
         window.playText = async (txt) => {
             if (isSpeaking) return; isSpeaking = true;
             try {
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${googleAiStudioKey}`, {
-                    method: 'POST',
-                    body: JSON.stringify({ 
-                        contents: [{ parts: [{ text: txt }] }], 
-                        generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Puck" } } } } 
-                    })
+                const d = await callAi('gemini-2.5-flash-preview-tts', { 
+                    contents: [{ parts: [{ text: txt }] }], 
+                    generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Puck" } } } } 
                 });
-                const data = await res.json();
-                const pcm = data.candidates[0].content.parts[0].inlineData.data;
+                const pcm = d.candidates[0].content.parts[0].inlineData.data;
                 const audio = new Audio(URL.createObjectURL(new Blob([createWavHeader(atob(pcm).length, 24000), new Uint8Array([...atob(pcm)].map(c => c.charCodeAt(0)))], { type: 'audio/wav' })));
                 audio.onended = () => isSpeaking = false; audio.play();
             } catch (e) { isSpeaking = false; }
@@ -388,7 +295,7 @@
             return b;
         }
 
-        window.onload = () => checkAuthState();
+        window.onload = checkAuthState;
     </script>
 </body>
 </html>
